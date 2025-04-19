@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  # Основной веб-сервис с Django приложением
+  web:
+    build: .
+    restart: always
+    volumes:
+      - .:/app
+      - sqlite_data:/app/data  # Создаем директорию для базы данных
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    command: >
+      sh -c "
+             # Создаем директорию для базы данных и устанавливаем права
+             mkdir -p /app/data &&
+             chmod 777 /app/data &&
+             # Если база данных не существует в /app/data, копируем туда существующую или создаем новую
+             if [ ! -f /app/data/db.sqlite3 ] && [ -f /app/db.sqlite3 ]; then
+                 cp /app/db.sqlite3 /app/data/db.sqlite3 &&
+                 chmod 666 /app/data/db.sqlite3;
+             fi &&
+             # Создаем символическую ссылку для совместимости
+             ln -sf /app/data/db.sqlite3 /app/db.sqlite3 &&
+             # Применяем миграции к базе данных
+             python manage.py migrate &&
+             # Устанавливаем правильные права на файл базы данных
+             chmod 666 /app/data/db.sqlite3 &&
+             # Импортируем товары из файла (если нужно)
+             python manage.py import_products backend/fixtures/shop.yaml &&
+             # Запускаем сервер разработки
+             python manage.py runserver 0.0.0.0:8000"
+
+volumes:
+  # Том для хранения SQLite базы данных
+  sqlite_data: 
