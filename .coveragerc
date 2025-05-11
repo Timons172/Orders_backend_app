@@ -12,6 +12,13 @@ exclude_lines =
     raise ImportError
     except ImportError
 
+[json]
+pretty_print = true
+show_contexts = true
+
+[xml]
+package_depth = 99
+
 [paths]
 source =
     backend/
