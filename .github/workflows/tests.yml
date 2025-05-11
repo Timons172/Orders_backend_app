@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [ main, master ]
 
+permissions:
+  contents: write
+  pull-requests: write
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -55,17 +59,17 @@ jobs:
     - name: Python Coverage
       uses: py-cov-action/python-coverage-comment-action@v3
       with:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_TOKEN: ${{ github.token }}
         MINIMUM_GREEN: 80
         MINIMUM_ORANGE: 60
+        COVERAGE_PATH: coverage.xml
+        BADGE_PATH: ./coverage.svg
         COMMENT_TEMPLATE: |
           ### Покрытие кода тестами: {coverage:.2f}%
           
           | Метрика | Покрытие |
           | ------- | -------- |
           | Statements | {statement_coverage:.2f}% |
-          | Branches | {branch_coverage:.2f}% |
-          | Functions | {function_coverage:.2f}% |
           | Lines | {line_coverage:.2f}% |
         
     - name: Upload coverage artifact

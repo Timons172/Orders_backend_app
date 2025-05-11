@@ -1,0 +1,18 @@
+[run]
+relative_files = true
+source = backend
+
+[report]
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    raise NotImplementedError
+    if __name__ == .__main__.:
+    pass
+    raise ImportError
+    except ImportError
+
+[paths]
+source =
+    backend/
+    /app/backend/ 
