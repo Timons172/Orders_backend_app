@@ -38,13 +38,13 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install -r requirements.txt
+        pip install -r requirements.txt --verbose
         # Выведем версии установленных пакетов для отладки
         pip list | grep -E 'pytest|coverage|codecov'
         
     - name: Run tests with pytest and generate coverage report
       run: |
-        pytest --cov=backend --cov-report=xml --cov-report=term
+        python -m pytest --cov=backend --cov-report=xml --cov-report=term -v
         
     - name: Upload coverage reports to Codecov
       uses: codecov/codecov-action@v3
