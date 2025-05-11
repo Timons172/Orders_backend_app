@@ -42,13 +42,12 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install -r requirements.txt --verbose
-        # Выведем версии установленных пакетов для отладки
-        pip list | grep -E 'pytest|coverage|codecov'
+        pip install -r requirements.txt
+        pip install pytest pytest-django pytest-cov
         
     - name: Run tests with pytest and generate coverage report
       run: |
-        python -m pytest --cov=backend --cov-report=xml --cov-report=term --cov-report=json -v
+        python -m pytest --cov=backend --cov-report=xml --cov-report=term -v
         
     - name: Upload coverage reports to Codecov
       uses: codecov/codecov-action@v3
@@ -56,31 +55,7 @@ jobs:
         file: ./coverage.xml
         fail_ci_if_error: false
         
-    - name: Python Coverage
-      uses: py-cov-action/python-coverage-comment-action@v3
-      with:
-        GITHUB_TOKEN: ${{ github.token }}
-        MINIMUM_GREEN: 80
-        MINIMUM_ORANGE: 60
-        COVERAGE_PATH: coverage.json
-        COMMENT_TEMPLATE: |
-          ### Покрытие кода тестами: {coverage:.2f}%
-          
-          | Метрика | Покрытие |
-          | ------- | -------- |
-          | Statements | {statement_coverage:.2f}% |
-          | Lines | {line_coverage:.2f}% |
-        
-    - name: Upload coverage artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: pytest-coverage
-        path: |
-          coverage.xml
-          coverage.json
-          .coverage
-        
-    # Создание статического бейджа для README.md
+    # Простой способ создания бейджа покрытия
     - name: Coverage Badge
       uses: tj-actions/coverage-badge-py@v2
       with:
