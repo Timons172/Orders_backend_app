@@ -12,6 +12,11 @@ services:
       - "8000:8000"
     env_file:
       - .env
+    depends_on:
+      - redis
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
     command: >
       sh -c "
              # Создаем директорию для базы данных и устанавливаем права
@@ -33,6 +38,51 @@ services:
              # Запускаем сервер разработки
              python manage.py runserver 0.0.0.0:8000"
 
+  # Сервис Redis для брокера сообщений Celery и хранения результатов задач
+  redis:
+    image: redis:7-alpine
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes  # Включаем режим сохранения данных для Redis
+
+  # Celery worker для обработки асинхронных задач
+  celery_worker:
+    build: .
+    restart: always
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    depends_on:
+      - redis
+      - web
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    command: celery -A orders_project worker --loglevel=info
+
+  # Celery beat для запуска периодических задач
+  celery_beat:
+    build: .
+    restart: always
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    depends_on:
+      - redis
+      - web
+      - celery_worker
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    command: celery -A orders_project beat --loglevel=info
+
 volumes:
   # Том для хранения SQLite базы данных
-  sqlite_data: 
+  sqlite_data:
+  # Том для хранения данных Redis
+  redis_data: 

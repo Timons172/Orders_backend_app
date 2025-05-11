@@ -15,6 +15,7 @@ from .serializers import (
     OrderSerializer, OrderItemSerializer, OrderItemCreateSerializer, ContactSerializer,
     UserSerializer, UserRegisterSerializer
 )
+from .tasks import send_order_confirmation_email, update_product_availability
 
 
 class UserRegisterView(APIView):
@@ -297,68 +298,51 @@ class OrderViewSet(viewsets.ModelViewSet):
         return Order.objects.filter(user=self.request.user).exclude(status='new')
     
     def create(self, request):
-        """Подтвердить заказ с указанным контактом доставки"""
-        # Получаем текущую корзину пользователя
-        cart, created = Order.objects.get_or_create(
-            user=request.user,
-            status='new'
-        )
-        
-        # Получаем ID контакта для доставки
-        contact_id = request.data.get('contact_id')
-        
-        # Проверяем, указан ли контакт
-        if not contact_id:
+        """Подтверждение заказа (преобразование корзины в заказ)"""
+        # Получаем корзину пользователя
+        try:
+            cart = Order.objects.get(user=request.user, status='new')
+        except Order.DoesNotExist:
             return Response(
-                {'error': 'Contact ID is required'},
+                {'error': 'You have no items in your cart'},
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        # Проверяем, существует ли указанный контакт
+        # Проверяем, есть ли товары в корзине
+        if not cart.items.exists():
+            return Response(
+                {'error': 'Your cart is empty'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Проверяем наличие контакта для доставки
+        contact_id = request.data.get('contact_id')
         try:
             contact = Contact.objects.get(id=contact_id, user=request.user)
         except Contact.DoesNotExist:
             return Response(
-                {'error': 'Contact not found'},
-                status=status.HTTP_404_NOT_FOUND
-            )
-        
-        # Проверяем, не пуста ли корзина
-        if not cart.items.exists():
-            return Response(
-                {'error': 'Cart is empty'},
+                {'error': 'Invalid contact selected for delivery'},
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        # Меняем статус корзины на "подтвержден"
+        # Обновляем статус заказа и сохраняем информацию о контакте
         cart.status = 'confirmed'
+        cart.contact = contact
         cart.save()
         
-        # Отправляем подтверждение заказа по email пользователю
-        subject = 'Order confirmation'
-        message = f'Thank you for your order! Your order ID is {cart.id}.'
-        from_email = settings.DEFAULT_FROM_EMAIL
-        recipient_list = [request.user.email]
+        # Асинхронно отправляем уведомление о заказе через Celery
+        send_order_confirmation_email.delay(
+            cart.id, 
+            request.user.email, 
+            f"{request.user.first_name} {request.user.last_name}"
+        )
         
-        try:
-            send_mail(subject, message, from_email, recipient_list)
-        except Exception as e:
-            print(f"Error sending email to user: {e}")
-        
-        # Отправляем детали заказа администратору
-        admin_subject = f'New order #{cart.id}'
-        admin_message = f'New order from {request.user.get_full_name() or request.user.username}\n'
-        admin_message += f'Contact: {contact.value}\n\n'
-        
-        for item in cart.items.all():
-            admin_message += f'- {item.product.name} from {item.shop.name}: {item.quantity} pcs\n'
-        
-        admin_email = settings.ADMIN_EMAIL
-        
-        try:
-            send_mail(admin_subject, admin_message, from_email, [admin_email])
-        except Exception as e:
-            print(f"Error sending email to admin: {e}")
+        # Асинхронно обновляем доступность товаров в магазинах
+        for shop_id in cart.items.values_list('shop', flat=True).distinct():
+            update_product_availability.delay(shop_id)
         
         # Возвращаем данные подтвержденного заказа
-        return Response(OrderSerializer(cart).data)
+        return Response(
+            OrderSerializer(cart).data,
+            status=status.HTTP_201_CREATED
+        )
