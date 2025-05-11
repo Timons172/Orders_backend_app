@@ -132,6 +132,7 @@ class Order(models.Model):
     user = models.ForeignKey(User, related_name='orders', on_delete=models.CASCADE, verbose_name='User')
     dt = models.DateTimeField(auto_now_add=True, verbose_name='Order date')
     status = models.CharField(max_length=15, choices=STATUS_CHOICES, default='new', verbose_name='Order status')
+    contact = models.ForeignKey('Contact', related_name='orders', on_delete=models.SET_NULL, verbose_name='Delivery contact', null=True, blank=True)
     
     class Meta:
         verbose_name = 'Order'

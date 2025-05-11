@@ -1,5 +1,9 @@
 # Дипломный проект «Backend приложение для автоматизации закупок»
 
+[![Python Tests](https://github.com/Timons172/Orders_backend_app/actions/workflows/tests.yml/badge.svg)](https://github.com/Timons172/Orders_backend_app/actions/workflows/tests.yml)
+[![codecov](https://codecov.io/gh/Timons172/Orders_backend_app/branch/master/graph/badge.svg)](https://codecov.io/gh/Timons172/Orders_backend_app)
+![Coverage](./coverage.svg)
+
 ## Описание проекта
 
 API приложение на базе Django REST Framework для автоматизации закупок в розничной сети. Система позволяет клиентам делать заказы товаров от различных поставщиков, а поставщикам управлять товарами и получать информацию о заказах.
@@ -193,6 +197,36 @@ curl -H "Authorization: Token <your_token>" http://localhost:8000/api/cart/
 - Добавления/изменения товаров и категорий
 - Просмотра и редактирования заказов
 - Изменения статусов заказов
+
+## Тестирование
+
+Проект покрыт автоматическими тестами, использующими pytest и pytest-django. Для запуска тестов и проверки покрытия кода выполните:
+
+```bash
+# Локально
+pytest
+
+# В Docker
+docker-compose exec web pytest
+```
+
+### Покрытие кода
+
+Для проверки покрытия кода используется инструмент coverage, интегрированный с pytest:
+
+```bash
+# Запуск тестов с проверкой покрытия
+pytest --cov=backend
+
+# Генерация HTML-отчета о покрытии
+pytest --cov=backend --cov-report=html
+```
+
+После выполнения команды будет создана директория `htmlcov` с отчетом о покрытии. Откройте файл `htmlcov/index.html` в браузере для просмотра детального отчета.
+
+### Непрерывная интеграция
+
+Проект настроен на автоматическое выполнение тестов при каждом push в master/main ветку и при создании pull request с использованием GitHub Actions. Результаты тестов и покрытие кода отображаются в виде бейджа в README.
 
 ## Асинхронные задачи с Celery
 
