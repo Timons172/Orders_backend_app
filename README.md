@@ -1,7 +1,6 @@
 # Дипломный проект «Backend приложение для автоматизации закупок»
 
 [![Python Tests](https://github.com/Timons172/Orders_backend_app/actions/workflows/tests.yml/badge.svg)](https://github.com/Timons172/Orders_backend_app/actions/workflows/tests.yml)
-[![codecov](https://codecov.io/gh/Timons172/Orders_backend_app/branch/master/graph/badge.svg)](https://codecov.io/gh/Timons172/Orders_backend_app)
 ![Coverage](./coverage.svg)
 
 ## Описание проекта

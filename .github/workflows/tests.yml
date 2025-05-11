@@ -49,12 +49,6 @@ jobs:
       run: |
         python -m pytest --cov=backend --cov-report=xml --cov-report=term -v
         
-    - name: Upload coverage reports to Codecov
-      uses: codecov/codecov-action@v3
-      with:
-        file: ./coverage.xml
-        fail_ci_if_error: false
-        
     # Простой способ создания бейджа покрытия
     - name: Coverage Badge
       uses: tj-actions/coverage-badge-py@v2
