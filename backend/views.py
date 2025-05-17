@@ -8,16 +8,22 @@ from django.contrib.auth import authenticate
 from django.db.models import Q
 from django.core.mail import send_mail
 from django.conf import settings
+from drf_spectacular.utils import extend_schema
 
 from .models import Shop, Category, Product, ProductInfo, Parameter, ProductParameter, Order, OrderItem, Contact
 from .serializers import (
     ShopSerializer, CategorySerializer, ProductSerializer, ProductInfoSerializer,
     OrderSerializer, OrderItemSerializer, OrderItemCreateSerializer, ContactSerializer,
-    UserSerializer, UserRegisterSerializer
+    UserSerializer, UserRegisterSerializer, UserLoginSerializer
 )
 from .tasks import send_order_confirmation_email, update_product_availability
 
 
+@extend_schema(
+    request=UserRegisterSerializer,
+    responses=UserSerializer,
+    description="API эндпоинт для регистрации новых пользователей."
+)
 class UserRegisterView(APIView):
     """
     API эндпоинт для регистрации новых пользователей.
@@ -65,6 +71,11 @@ class UserRegisterView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+@extend_schema(
+    request=UserLoginSerializer,
+    responses=UserSerializer,
+    description="API эндпоинт для входа пользователей в систему."
+)
 class UserLoginView(ObtainAuthToken):
     """
     API эндпоинт для входа пользователей в систему.
@@ -95,6 +106,10 @@ class UserLoginView(ObtainAuthToken):
         return Response({'error': 'Invalid credentials'}, status=status.HTTP_400_BAD_REQUEST)
 
 
+@extend_schema(
+    responses=ProductSerializer(many=True),
+    description="API эндпоинт для просмотра списка товаров."
+)
 class ProductViewSet(viewsets.ReadOnlyModelViewSet):
     """
     API эндпоинт для просмотра списка товаров.
@@ -107,6 +122,15 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [permissions.AllowAny]
 
 
+@extend_schema(
+    parameters=[
+        {"name": "shop", "required": False, "type": int, "description": "ID магазина"},
+        {"name": "category", "required": False, "type": int, "description": "ID категории"},
+        {"name": "search", "required": False, "type": str, "description": "Поиск по названию"},
+    ],
+    responses=ProductInfoSerializer(many=True),
+    description="API эндпоинт для просмотра детальной информации о товарах с фильтрами."
+)
 class ProductInfoViewSet(viewsets.ReadOnlyModelViewSet):
     """
     API эндпоинт для просмотра детальной информации о товарах с возможностью фильтрации.
@@ -150,6 +174,11 @@ class ProductInfoViewSet(viewsets.ReadOnlyModelViewSet):
         return queryset
 
 
+@extend_schema(
+    request=OrderItemCreateSerializer,
+    responses=OrderSerializer,
+    description="API эндпоинт для управления корзиной пользователя."
+)
 class CartView(APIView):
     """
     API эндпоинт для управления корзиной пользователя.
@@ -255,6 +284,11 @@ class CartView(APIView):
             )
 
 
+@extend_schema(
+    request=ContactSerializer,
+    responses=ContactSerializer,
+    description="API эндпоинт для управления контактами пользователя."
+)
 class ContactViewSet(viewsets.ModelViewSet):
     """
     API эндпоинт для управления контактами пользователя (адреса, телефоны).
@@ -279,6 +313,11 @@ class ContactViewSet(viewsets.ModelViewSet):
         serializer.save(user=self.request.user)
 
 
+@extend_schema(
+    request=OrderSerializer,
+    responses=OrderSerializer,
+    description="API эндпоинт для управления заказами пользователя."
+)
 class OrderViewSet(viewsets.ModelViewSet):
     """
     API эндпоинт для управления заказами пользователя.

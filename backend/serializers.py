@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
 from .models import Shop, Category, Product, ProductInfo, Parameter, ProductParameter, Order, OrderItem, Contact
+from drf_spectacular.utils import extend_schema_serializer, OpenApiExample
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -145,6 +146,21 @@ class OrderSerializer(serializers.ModelSerializer):
         return sum(item.product.product_infos.get(shop=item.shop).price * item.quantity for item in obj.items.all())
 
 
+@extend_schema_serializer(
+    examples=[
+        OpenApiExample(
+            'Пример регистрации',
+            value={
+                "username": "user123",
+                "email": "user@example.com",
+                "first_name": "Иван",
+                "last_name": "Иванов",
+                "password": "password123",
+                "password_repeat": "password123"
+            }
+        )
+    ]
+)
 class UserRegisterSerializer(serializers.ModelSerializer):
     """
     Сериализатор для регистрации новых пользователей.
@@ -174,4 +190,23 @@ class UserRegisterSerializer(serializers.ModelSerializer):
         user = User.objects.create(**validated_data)
         user.set_password(password)
         user.save()
-        return user 
+        return user
+
+
+@extend_schema_serializer(
+    examples=[
+        OpenApiExample(
+            'Пример логина',
+            value={
+                "username": "user123",
+                "password": "password123"
+            }
+        )
+    ]
+)
+class UserLoginSerializer(serializers.Serializer):
+    """
+    Сериализатор для логина пользователя (только username и password).
+    """
+    username = serializers.CharField()
+    password = serializers.CharField() 
