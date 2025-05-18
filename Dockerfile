@@ -9,6 +9,11 @@ WORKDIR /app
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
 
+# Устанавливаем системные зависимости, включая libmagic для django-versatileimagefield
+RUN apt-get update && apt-get install -y \
+    libmagic-dev \
+    && rm -rf /var/lib/apt/lists/*
+
 # Устанавливаем зависимости
 # Сначала копируем только файл с зависимостями для использования кэша Docker
 COPY requirements.txt .

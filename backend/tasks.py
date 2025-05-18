@@ -124,4 +124,72 @@ def process_new_orders():
         return f"Processed {new_orders.count()} new orders"
     except Exception as e:
         logger.error(f"Error processing new orders: {e}")
-        return False 
+        return False
+
+@shared_task
+def create_image_thumbnails(model, instance_id, field_name):
+    """
+    Асинхронно создает все миниатюры для изображения после его загрузки
+    
+    Args:
+        model (str): Строковое имя модели ('UserProfile' или 'Product')
+        instance_id (int): ID экземпляра модели
+        field_name (str): Имя поля с изображением ('avatar' или 'image')
+    """
+    logger.info(f"Creating thumbnails for {model} with id {instance_id}, field {field_name}")
+    
+    try:
+        from django.apps import apps
+        from django.conf import settings
+        from versatileimagefield.image_warmer import VersatileImageFieldWarmer
+        
+        # Получаем класс модели
+        Model = apps.get_model('backend', model)
+        instance = Model.objects.get(id=instance_id)
+        
+        # Получаем ссылку на поле с изображением
+        image_field = getattr(instance, field_name)
+        
+        # Пропускаем, если изображения нет
+        if not image_field:
+            logger.info(f"No image found for {model} with id {instance_id}")
+            return False
+        
+        # Получаем набор размеров для создания
+        if model == 'UserProfile':
+            rendition_key_set = 'user_avatar'
+        elif model == 'Product':
+            rendition_key_set = 'product_image'
+        else:
+            logger.error(f"Unknown model {model}")
+            return False
+        
+        rendition_keys = settings.VERSATILEIMAGEFIELD_RENDITION_KEY_SETS.get(rendition_key_set, [])
+        
+        # Создаем все миниатюры
+        warmer = VersatileImageFieldWarmer(
+            instance_or_queryset=instance,
+            rendition_key_set=rendition_keys,
+            image_attr=field_name,
+            verbose=True
+        )
+        
+        num_created, failed_to_create = warmer.warm()
+        
+        logger.info(
+            f"Created {num_created} thumbnails for {model} with id {instance_id}, "
+            f"failed to create {failed_to_create or 0}"
+        )
+        
+        return {
+            'success': True,
+            'created': num_created,
+            'failed': failed_to_create or 0
+        }
+        
+    except Exception as e:
+        logger.error(f"Error creating thumbnails for {model} with id {instance_id}: {e}")
+        return {
+            'success': False,
+            'error': str(e)
+        } 

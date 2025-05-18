@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     'drf_spectacular',
     'cachalot',
+    'versatileimagefield',
     
     # Project apps
     'backend',
@@ -223,3 +224,39 @@ CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = TIME_ZONE
+
+# Настройки для django-versatileimagefield
+VERSATILEIMAGEFIELD_SETTINGS = {
+    # Качество JPEG сжатия (1-100)
+    'jpeg_resize_quality': 85,
+    
+    # Создавать миниатюры автоматически при запросе или заранее
+    'create_images_on_demand': False,
+    
+    # Настройка прогрессивных JPEG
+    'progressive_jpeg': True,
+    
+    # Функция для постобработки ключей файлов изображений
+    'image_key_post_processor': None,
+}
+
+# Определение наборов размеров изображений для автоматического создания
+VERSATILEIMAGEFIELD_RENDITION_KEY_SETS = {
+    'product_image': [
+        ('full_size', 'url'),
+        ('thumbnail', 'thumbnail__100x100'),
+        ('medium', 'thumbnail__300x300'),
+        ('large', 'thumbnail__600x600'),
+        ('square_crop', 'crop__400x400'),
+    ],
+    'user_avatar': [
+        ('full_size', 'url'),
+        ('thumbnail', 'thumbnail__50x50'),
+        ('medium', 'thumbnail__150x150'),
+        ('square_crop', 'crop__200x200'),
+    ],
+}
+
+# Папки для хранения изображений
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')

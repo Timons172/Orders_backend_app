@@ -9,6 +9,8 @@ from django.db.models import Q
 from django.core.mail import send_mail
 from django.conf import settings
 from drf_spectacular.utils import extend_schema
+from rest_framework.decorators import action
+from rest_framework.parsers import MultiPartParser, FormParser
 
 from .models import Shop, Category, Product, ProductInfo, Parameter, ProductParameter, Order, OrderItem, Contact
 from .serializers import (
@@ -384,4 +386,124 @@ class OrderViewSet(viewsets.ModelViewSet):
         return Response(
             OrderSerializer(cart).data,
             status=status.HTTP_201_CREATED
+        )
+
+
+class UserAvatarView(APIView):
+    """
+    API для управления аватаром пользователя.
+    Позволяет загрузить или обновить аватар пользователя.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser]
+    
+    def post(self, request):
+        """Загрузка или обновление аватара пользователя"""
+        profile = request.user.profile
+        
+        # Проверяем, есть ли файл в запросе
+        avatar = request.FILES.get('avatar')
+        if not avatar:
+            return Response(
+                {'error': 'Avatar file is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Получаем PPOI, если он указан
+        ppoi = request.data.get('avatar_ppoi')
+        if ppoi:
+            profile.avatar_ppoi = ppoi
+        
+        # Устанавливаем новый аватар
+        profile.avatar = avatar
+        profile.save()
+        
+        # Возвращаем обновленные данные пользователя
+        return Response(
+            UserSerializer(request.user).data,
+            status=status.HTTP_200_OK
+        )
+    
+    def delete(self, request):
+        """Удаление аватара пользователя"""
+        profile = request.user.profile
+        
+        # Если аватар есть, удаляем его
+        if profile.avatar:
+            # Удаляем файл и все созданные миниатюры
+            profile.avatar.delete_all_created_images()
+            # Очищаем поле в модели
+            profile.avatar = None
+            profile.save()
+        
+        # Возвращаем обновленные данные пользователя
+        return Response(
+            UserSerializer(request.user).data,
+            status=status.HTTP_200_OK
+        )
+
+
+class ProductImageView(APIView):
+    """
+    API для управления изображением товара.
+    Позволяет загрузить или обновить изображение товара.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser]
+    
+    def post(self, request, product_id):
+        """Загрузка или обновление изображения товара"""
+        try:
+            product = Product.objects.get(id=product_id)
+        except Product.DoesNotExist:
+            return Response(
+                {'error': 'Product not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Проверяем, есть ли файл в запросе
+        image = request.FILES.get('image')
+        if not image:
+            return Response(
+                {'error': 'Image file is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Получаем PPOI, если он указан
+        ppoi = request.data.get('image_ppoi')
+        if ppoi:
+            product.image_ppoi = ppoi
+        
+        # Устанавливаем новое изображение
+        product.image = image
+        product.save()
+        
+        # Возвращаем обновленные данные товара
+        return Response(
+            ProductSerializer(product).data,
+            status=status.HTTP_200_OK
+        )
+    
+    def delete(self, request, product_id):
+        """Удаление изображения товара"""
+        try:
+            product = Product.objects.get(id=product_id)
+        except Product.DoesNotExist:
+            return Response(
+                {'error': 'Product not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Если изображение есть, удаляем его
+        if product.image:
+            # Удаляем файл и все созданные миниатюры
+            product.image.delete_all_created_images()
+            # Очищаем поле в модели
+            product.image = None
+            product.save()
+        
+        # Возвращаем обновленные данные товара
+        return Response(
+            ProductSerializer(product).data,
+            status=status.HTTP_200_OK
         )

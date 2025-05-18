@@ -1,6 +1,45 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+from versatileimagefield.fields import VersatileImageField, PPOIField
+
+
+class UserProfile(models.Model):
+    """
+    Модель профиля пользователя для хранения дополнительной информации.
+    Связана с моделью User Django и автоматически создается при создании пользователя.
+    """
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
+    avatar = VersatileImageField(
+        'Аватар',
+        upload_to='user_avatars/',
+        ppoi_field='avatar_ppoi',
+        blank=True,
+        null=True
+    )
+    avatar_ppoi = PPOIField('Точка интереса аватара')
+    
+    class Meta:
+        verbose_name = 'User profile'
+        verbose_name_plural = 'User profiles'
+    
+    def __str__(self):
+        return f"Profile of {self.user.username}"
+
+
+@receiver(post_save, sender=User)
+def create_user_profile(sender, instance, created, **kwargs):
+    """Сигнал для автоматического создания профиля при создании пользователя"""
+    if created:
+        UserProfile.objects.create(user=instance)
+
+
+@receiver(post_save, sender=User)
+def save_user_profile(sender, instance, **kwargs):
+    """Сигнал для автоматического сохранения профиля при обновлении пользователя"""
+    instance.profile.save()
 
 
 class Shop(models.Model):
@@ -44,6 +83,14 @@ class Product(models.Model):
     """
     category = models.ForeignKey(Category, related_name='products', on_delete=models.CASCADE, verbose_name='Category')
     name = models.CharField(max_length=250, verbose_name='Product name')
+    image = VersatileImageField(
+        'Изображение товара',
+        upload_to='product_images/',
+        ppoi_field='image_ppoi',
+        blank=True,
+        null=True
+    )
+    image_ppoi = PPOIField('Точка интереса изображения товара')
     
     class Meta:
         verbose_name = 'Product'

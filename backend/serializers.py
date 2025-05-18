@@ -1,17 +1,37 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from .models import Shop, Category, Product, ProductInfo, Parameter, ProductParameter, Order, OrderItem, Contact
+from .models import Shop, Category, Product, ProductInfo, Parameter, ProductParameter, Order, OrderItem, Contact, UserProfile
 from drf_spectacular.utils import extend_schema_serializer, OpenApiExample
+from versatileimagefield.serializers import VersatileImageFieldSerializer
+
+
+class UserProfileSerializer(serializers.ModelSerializer):
+    """
+    Сериализатор для модели профиля пользователя.
+    Включает поддержку аватара с различными размерами миниатюр.
+    """
+    avatar = VersatileImageFieldSerializer(
+        sizes='user_avatar',
+        required=False,
+        allow_null=True
+    )
+    
+    class Meta:
+        model = UserProfile
+        fields = ('avatar', 'avatar_ppoi')
 
 
 class UserSerializer(serializers.ModelSerializer):
     """
     Сериализатор для модели пользователя.
     Используется для отображения данных пользователя в API.
+    Включает вложенные данные профиля с аватаром.
     """
+    profile = UserProfileSerializer(read_only=True)
+    
     class Meta:
         model = User
-        fields = ('id', 'username', 'email', 'first_name', 'last_name')
+        fields = ('id', 'username', 'email', 'first_name', 'last_name', 'profile')
         read_only_fields = ('id',)
 
 
@@ -52,13 +72,18 @@ class CategorySerializer(serializers.ModelSerializer):
 class ProductSerializer(serializers.ModelSerializer):
     """
     Сериализатор для модели товара.
-    Включает вложенные данные о категории товара.
+    Включает вложенные данные о категории товара и изображении с различными миниатюрами.
     """
     category = CategorySerializer(read_only=True)
-
+    image = VersatileImageFieldSerializer(
+        sizes='product_image',
+        required=False,
+        allow_null=True
+    )
+    
     class Meta:
         model = Product
-        fields = ('id', 'name', 'category')
+        fields = ('id', 'name', 'category', 'image', 'image_ppoi')
         read_only_fields = ('id',)
 
 
