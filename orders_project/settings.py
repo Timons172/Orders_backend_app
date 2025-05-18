@@ -140,6 +140,39 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+# Cache settings
+CACHES = {
+    'default': {
+        'BACKEND': 'django_redis.cache.RedisCache',
+        'LOCATION': os.getenv('REDIS_URL', 'redis://redis:6379/1'),
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+            'PARSER_CLASS': 'redis.connection.HiredisParser',
+            'CONNECTION_POOL_CLASS': 'redis.connection.BlockingConnectionPool',
+            'CONNECTION_POOL_CLASS_KWARGS': {
+                'max_connections': 50,
+                'timeout': 20,
+            },
+            'COMPRESSOR': 'django_redis.compressors.zlib.ZlibCompressor',
+            'IGNORE_EXCEPTIONS': True,
+        }
+    },
+    'throttle': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'throttle-cache',
+    }
+}
+
+# Cachalot settings
+CACHALOT_ENABLED = True
+CACHALOT_CACHE = 'default'
+CACHALOT_TIMEOUT = 60 * 15  # 15 minutes
+CACHALOT_UNCACHABLE_TABLES = frozenset((
+    'django_migrations',
+    'django_content_type',
+    'django_session',
+))
+
 # REST Framework settings
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
@@ -159,6 +192,10 @@ REST_FRAMEWORK = {
     'DEFAULT_THROTTLE_RATES': {
         'anon': '60/minute',
         'user': '600/minute',
+    },
+    'DEFAULT_THROTTLE_STORAGE': 'rest_framework.throttling.CacheStorage',
+    'DEFAULT_THROTTLE_STORAGE_KWARGS': {
+        'cache': 'throttle',
     },
 }
 
@@ -186,32 +223,3 @@ CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = TIME_ZONE
-
-# Cache settings
-CACHES = {
-    'default': {
-        'BACKEND': 'django_redis.cache.RedisCache',
-        'LOCATION': os.getenv('REDIS_URL', 'redis://redis:6379/1'),
-        'OPTIONS': {
-            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
-            'PARSER_CLASS': 'redis.connection.HiredisParser',
-            'CONNECTION_POOL_CLASS': 'redis.connection.BlockingConnectionPool',
-            'CONNECTION_POOL_CLASS_KWARGS': {
-                'max_connections': 50,
-                'timeout': 20,
-            },
-            'COMPRESSOR': 'django_redis.compressors.zlib.ZlibCompressor',
-            'IGNORE_EXCEPTIONS': True,
-        }
-    }
-}
-
-# Cachalot settings
-CACHALOT_ENABLED = True
-CACHALOT_CACHE = 'default'
-CACHALOT_TIMEOUT = 60 * 15  # 15 minutes
-CACHALOT_UNCACHABLE_TABLES = frozenset((
-    'django_migrations',
-    'django_content_type',
-    'django_session',
-))
